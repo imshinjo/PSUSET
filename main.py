@@ -30,7 +30,7 @@ def file_handler(report_file): # 統計記入ファイルに対応した利用�
     if report_file != "Ricohスキャナ統計.xlsx":
         print("最新の機器カウンターレポートから値を取得します")
 
-        file = glob.glob("./number_report/最新の機器カウンターレポート(JA)*") # 最新の CSV を取得（前方一致）
+        file = glob.glob("./number_report/最新の機器カウンターレポート*") # 最新の CSV を取得（前方一致）
         csv_file = file[0] # CSVは1つだけの想定なので先頭のファイルを取得
 
         # === CSVを Shift-JIS → UTF-8 に変換 ===
@@ -44,7 +44,7 @@ def file_handler(report_file): # 統計記入ファイルに対応した利用�
     
     else:
         print("機能×カラー別集計レポートから値を取得します")
-        file = glob.glob("./number_report/機能×カラー別集計レポート 月毎(JA)*") # 最新の xls を取得（前方一致）
+        file = glob.glob("./number_report/機能×カラー別集計レポート*") # 最新の xls を取得（前方一致）
         excel_file = file[0]  # 先頭のファイルを取得
 
         return excel_file
