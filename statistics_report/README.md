@@ -1,0 +1,5 @@
+このstatistics_reportフォルダには，利用統計レポートのExcelを置いてください。
+Ricohスキャナ統計.xlsx
+ロビープリンタ印刷統計.xlsx
+教員カラープリンタ印刷統計.xlsx
+教室等モノクロプリンタ印刷統計.xlsx
