@@ -88,7 +88,7 @@ def fetch_data(report_file, sheet_name, prev_col, column_char, column_head):
                     print(f"{host_name} の {column_head} = {value} を {prev_col}{row_idx} に記入")
                 
                 else:
-                    print(f"{host_name}が見つかりませんでした")
+                    print(f"{host_name} が見つかりませんでした")
 
 
     else: # Ricohスキャナ統計.xlsxの場合
