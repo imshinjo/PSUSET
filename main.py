@@ -4,8 +4,7 @@ from openpyxl import load_workbook
 from datetime import datetime
 
 # 現在の月を取得して、前月の数字を計算
-#current_month = datetime.now().month
-current_month = 5
+current_month = datetime.now().month
 prev_month = current_month - 1 if current_month > 1 else 12 # 1月なら前月は12月
 two_month_ago = prev_month - 1 if prev_month > 1 else 12
 
