@@ -11,7 +11,7 @@ two_month_ago = prev_month - 1 if prev_month > 1 else 12
 
 def excel_handler(report_file, sheet_name=None):
     # sheet
-    workbook = load_workbook(report_file)
+    workbook = load_workbook(report_file, data_only=True)
     sheet = workbook[sheet_name] if sheet_name else workbook.active
 
     # last low
@@ -74,6 +74,7 @@ class commander:
         
 
     def fill_in_report(self):
+        print(f"{self.report_file}の処理を開始します")
 
         if self.report_file != "./statistics_report/Ricohスキャナ統計.xlsx":
 
@@ -88,13 +89,18 @@ class commander:
 
                 if host_name:
                     if host_name in df_utf8["Host Name"].values: # 集計レポートでホスト名を検索
-
                         value = df_utf8[df_utf8["Host Name"] == host_name][self.csv_head].values[0] # host_nameと一致する行のcsv_head列の値を取得
-                        self.sheet[f"{self.prev_month_col}{row_idx}"].value = value  # 前月の列に書き込み
-                        print(f"{host_name} の {self.csv_head} = {value} を {self.prev_month_col}{row_idx} に記入")
                     
                     else:
                         print(f"{host_name} が見つかりませんでした")
+                        if prev_month != 4:
+                            value = self.sheet[f"{self.two_month_col}{row_idx}"].value  # 先々月の列の値を取得
+                        else:
+                            old_sheet = excel_handler(self.report_file, f"{self.sheet_name}_OLD")[3] # 4月の記入時はOLDシートの3月の数値を参照
+                            value = old_sheet[f"{self.two_month_col}{row_idx}"].value
+
+                    self.sheet[f"{self.prev_month_col}{row_idx}"].value = value  # 前月の列に書き込み
+                    print(f"{host_name} の {self.csv_head} = {value} を {self.prev_month_col}{row_idx} に記入")
 
         else: # Ricohスキャナ統計.xlsxの場合 プリンタサーバから出力されるxlsファイルが破損しているため，手動で新規xlsxファイルにコピー＆ペーストする。
             reference_file = glob.glob("./number_report/機能×カラー別集計レポート*.xlsx")[0]
@@ -120,6 +126,11 @@ class commander:
                             
                     if find == 0:
                         print(f"{host_name} が見つかりませんでした")
+                        if prev_month != 4:
+                            value = self.sheet[f"{self.two_month_col}{row_idx}"].value  # 先々月の列の値を取得
+                        else:
+                            old_sheet = excel_handler(self.report_file, f"{self.sheet_name}_OLD")[3] # 4月の記入時はOLDシートの3月の数値を参照
+                            value = old_sheet[f"{self.two_month_col}{row_idx}"].value
 
 
         if prev_month != 4:
@@ -147,28 +158,36 @@ class commander:
                 self.sheet[f"{self.diff_col[1]}{row_idx}"].value = diff_value
 
         self.workbook.save(self.report_file)
+        print("----------")
 
 
 
     def gen_text(self):
+        print(f"{self.report_file}のテキストを作成します")
 
         prev_value = self.sheet[f"{self.prev_month_col}{self.sum_last_row}"].value # 前月の値を取得
         
         if prev_month != 4:
             two_value = self.sheet[f"{self.two_month_col}{self.sum_last_row}"].value
         else:
-            old_sheet = excel_handler(self.report_file, f"{self.sheet_name}_OLD", "E")[3]
+            old_sheet = excel_handler(self.report_file, f"{self.sheet_name}_OLD")[3]
             two_value = old_sheet[f"{self.two_month_col}{self.sum_last_row}"].value
 
-        prev_value = prev_value if prev_value else 0 # Noneを0に変換
-        two_value = two_value if two_value else 0
+        prev_value = int(prev_value) if prev_value else 0  # Noneや文字列を整数に変換
+        two_value = int(two_value) if two_value else 0
 
         if prev_value > two_value:
             word = "増加"
+            if prev_value - two_value >= 20000:
+                word = "大幅に増加"
+
         elif prev_value < two_value:
             word = "減少"
-            if prev_value == 0:
+            if two_value - prev_value >= 20000:
+                word = "大幅に減少"
+            elif prev_value == 0:
                 word = "減少（利用なし）"
+
         else:
             word = "変化なし"
             if prev_value == 0:
@@ -188,15 +207,17 @@ class commander:
                     max_value = value
                     max_row_num = row[0].row
 
-        if max_row_num: # 最大値を持つ行の A, B, C 列の値を取得
-            
-            if self.diff_col[1] == "Q":
-                place = f"{self.sheet[f'A{max_row_num}'].value} {self.sheet[f'B{max_row_num}'].value} {self.sheet[f'C{max_row_num}'].value}"
-            
-            else:  # P列の場合は A, B のみ
+
+        if max_row_num: # 最大値を持つ行の 建屋，部屋名 を取得
+
+            if self.report_file != "./statistics_report/ロビープリンタ印刷統計.xlsx":
                 place = f"{self.sheet[f'A{max_row_num}'].value} {self.sheet[f'B{max_row_num}'].value}"
+            
+            else: # ロビープリンタ印刷統計.xlsxの場合はA,B,C列を取得
+                place = f"{self.sheet[f'A{max_row_num}'].value} {self.sheet[f'B{max_row_num}'].value} {self.sheet[f'C{max_row_num}'].value}"
         else:
             place = "該当なし"
+        print("----------")
 
         return word, place, max_value
 
@@ -215,7 +236,7 @@ ricoh_lobby_mono = commander(*excel_handler("./statistics_report/Ricohスキャ�
 # fill in report
 instances = [ricoh_lobby_color, ricoh_lobby_mono, ricoh_class_color, ricoh_class_mono, lobby, teacher_color, teacher_mono, class_room]
 for instance in instances:
-    instance.fill_in_report
+    instance.fill_in_report()
 
 # create mail report text
 class_print = class_room.gen_text()
@@ -228,9 +249,9 @@ lobby_scan_color = ricoh_lobby_color.gen_text()
 lobby_scan_mono = ricoh_lobby_mono.gen_text()
 
 report_text = f"・プリンタ，スキャナ\n\
-当月は, 教室プリンタは{class_print[0]} ,\
+当月は, 教室プリンタは{class_print[0]}, \
 教員室プリンタは, カラーが{teacher_print_color[0]}, 白黒が{teacher_print_mono[0]}。\
-ロビープリンタは{lobby_print[0]},\
+ロビープリンタは{lobby_print[0]}, \
 教室プリンタのスキャナは, カラーが{class_scan_color[0]}, 白黒が{class_scan_mono[0]}。\
 ロビープリンタのスキャナは, カラーが{lobby_scan_color[0]}, 白黒が{lobby_scan_mono[0]}。\n\
 \
