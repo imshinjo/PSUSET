@@ -3,6 +3,7 @@ import pandas as pd
 from openpyxl import load_workbook
 from datetime import datetime
 
+
 current_month = datetime.now().month
 prev_month = current_month - 1 if current_month > 1 else 12
 two_month_ago = prev_month - 1 if prev_month > 1 else 12
@@ -201,31 +202,7 @@ class commander:
 
 
 
-def fill_in_report(report_file):
-
-    if report_file != "./statistics_report/教員カラープリンタ印刷統計.xlsx": # ロビープリンタ印刷統計 教室等モノクロプリンタ印刷統計 Ricohスキャナ統計 の場合
-
-        if report_file != "./statistics_report/Ricohスキャナ統計.xlsx": # ロビープリンタ印刷統計 教室等モノクロプリンタ印刷統計 の場合
-            commander.fetch_data(report_file, "ALL") # (report_file, 統計レポートのシート名)
-            commander.compare_month(report_file, "ALL")
-
-        else: # Ricohスキャナ統計.xlsx の場合
-            commander.fetch_data(report_file, "ロビーカラー")
-            commander.fetch_data(report_file, "ロビーモノクロ")
-            commander.fetch_data(report_file, "教室カラー")
-            commander.fetch_data(report_file, "教室モノクロ")
-
-    else: # 教員カラープリンタ印刷統計 の場合
-        commander.fetch_data(report_file, "モノクロ")
-        commander.fetch_data(report_file, "カラー")
-        commander.compare_month(report_file, "モノクロ")
-        commander.compare_month(report_file, "カラー")
-
-    print("--------------------")
-
-
-
-# generate mail report
+# create instance
 class_room = commander(*excel_handler("./statistics_report/教室等モノクロプリンタ印刷統計.xlsx", "ALL"))
 teacher_color = commander(*excel_handler("./statistics_report/教員カラープリンタ印刷統計.xlsx", "カラー"))
 teacher_mono = commander(*excel_handler("./statistics_report/教員カラープリンタ印刷統計.xlsx", "モノクロ"))
@@ -235,10 +212,12 @@ ricoh_class_mono = commander(*excel_handler("./statistics_report/Ricohスキャ�
 ricoh_lobby_color = commander(*excel_handler("./statistics_report/Ricohスキャナ統計.xlsx", "ロビーカラー"))
 ricoh_lobby_mono = commander(*excel_handler("./statistics_report/Ricohスキャナ統計.xlsx", "ロビーモノクロ"))
 
+# fill in report
 instances = [ricoh_lobby_color, ricoh_lobby_mono, ricoh_class_color, ricoh_class_mono, lobby, teacher_color, teacher_mono, class_room]
 for instance in instances:
     instance.fill_in_report
 
+# create mail report text
 class_print = class_room.gen_text()
 teacher_print_color = teacher_color.gen_text()
 teacher_print_mono = teacher_mono.gen_text()
