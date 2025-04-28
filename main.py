@@ -11,8 +11,11 @@ two_month_ago = prev_month - 1 if prev_month > 1 else 12
 
 def excel_handler(report_file, sheet_name=None):
     # sheet
-    workbook = load_workbook(report_file, data_only=True)
+    workbook = load_workbook(report_file)
+    workbook_data_only = load_workbook(report_file, data_only=True)
+
     sheet = workbook[sheet_name] if sheet_name else workbook.active
+    sheet_data_only = workbook_data_only[sheet_name] if sheet_name else workbook_data_only.active
 
     # last low
     host_last_row = sum_last_row = sheet.max_row
@@ -53,16 +56,17 @@ def excel_handler(report_file, sheet_name=None):
         if "モノクロ" in sheet_name:
             csv_head = "Printer: B&W"
 
-    return report_file, sheet_name, workbook, sheet, host_last_row, sum_last_row, prev_month_col, two_month_col, host_col, diff_col, csv_head, excel_head
+    return report_file, sheet_name, workbook, sheet, sheet_data_only, host_last_row, sum_last_row, prev_month_col, two_month_col, host_col, diff_col, csv_head, excel_head
 
 
 
 class commander:
-    def __init__(self, report_file, sheet_name, workbook, sheet, host_last_row, sum_last_row, prev_month_col, two_month_col, host_col, diff_col, csv_head, excel_head):
+    def __init__(self, report_file, sheet_name, workbook, sheet, sheet_data_only, host_last_row, sum_last_row, prev_month_col, two_month_col, host_col, diff_col, csv_head, excel_head):
         self.report_file = report_file
         self.sheet_name = sheet_name
         self.workbook = workbook
         self.sheet = sheet
+        self.sheet_data_only = sheet_data_only
         self.host_last_row = host_last_row
         self.sum_last_row = sum_last_row
         self.prev_month_col = prev_month_col
@@ -102,7 +106,7 @@ class commander:
                     self.sheet[f"{self.prev_month_col}{row_idx}"].value = value  # 前月の列に書き込み
                     print(f"{host_name} の {self.csv_head} = {value} を {self.prev_month_col}{row_idx} に記入")
 
-        else: # Ricohスキャナ統計.xlsxの場合 プリンタサーバから出力されるxlsファイルが破損しているため，手動で新規xlsxファイルにコピー＆ペーストする。
+        else: # Ricohスキャナ統計.xlsxの場合 プリンタサーバから出力されるxlsファイルが破損しているため，手動で新規xlsxファイルにコピー＆ペーストしておく。
             reference_file = glob.glob("./number_report/機能×カラー別集計レポート*.xlsx")[0]
             reference_sheet = excel_handler(reference_file)[3]
 
@@ -112,9 +116,9 @@ class commander:
                 if host_name:
                     for row in range(7, 84):
                         find = 0
-                        total_host_name = reference_sheet[f"B{row}"].value  # 利用集計ファイルのB列（ホスト名）を取得
+                        reference_host_name = reference_sheet[f"B{row}"].value  # 利用集計ファイルのB列（ホスト名）を取得
                         
-                        if host_name == total_host_name:
+                        if host_name == reference_host_name:
 
                             value = reference_sheet[f"{self.excel_head}{row}"].value
                             self.sheet[f"{self.prev_month_col}{row_idx}"].value = value # 統計記入ファイルの前月の列に記入
@@ -163,14 +167,12 @@ class commander:
 
 
     def gen_text(self):
-        print(f"{self.report_file}のテキストを作成します")
 
-        prev_value = self.sheet[f"{self.prev_month_col}{self.sum_last_row}"].value # 前月の値を取得
-        
+        prev_value = self.sheet_data_only[f"{self.prev_month_col}{self.sum_last_row}"].value # 前月の値を取得        
         if prev_month != 4:
-            two_value = self.sheet[f"{self.two_month_col}{self.sum_last_row}"].value
+            two_value = self.sheet_data_only[f"{self.two_month_col}{self.sum_last_row}"].value
         else:
-            old_sheet = excel_handler(self.report_file, f"{self.sheet_name}_OLD")[3]
+            old_sheet = excel_handler(self.report_file, f"{self.sheet_name}_OLD")[4] # sheet_name_data_only
             two_value = old_sheet[f"{self.two_month_col}{self.sum_last_row}"].value
 
         prev_value = int(prev_value) if prev_value else 0  # Noneや文字列を整数に変換
@@ -187,7 +189,6 @@ class commander:
                 word = "大幅に減少"
             elif prev_value == 0:
                 word = "減少（利用なし）"
-
         else:
             word = "変化なし"
             if prev_value == 0:
@@ -217,7 +218,6 @@ class commander:
                 place = f"{self.sheet[f'A{max_row_num}'].value} {self.sheet[f'B{max_row_num}'].value} {self.sheet[f'C{max_row_num}'].value}"
         else:
             place = "該当なし"
-        print("----------")
 
         return word, place, max_value
 
